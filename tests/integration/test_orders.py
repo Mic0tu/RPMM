@@ -2,7 +2,7 @@ from app.models import User, MenuItem, Order
 from app.core.dependencies import get_current_user # <--- Импортируем твою защиту
 from app.main import app
 
-def test_create_order_saves_to_db(client, db):
+def test_create_order_saves_to_db(client, db, monkeypatch):
     """Проверяет, что POST /orders/create сохраняет заказ в БД."""
     
     # 1. Создаем тестового пользователя и блюдо
@@ -14,6 +14,13 @@ def test_create_order_saves_to_db(client, db):
     # 2. ОБХОДИМ АВТОРИЗАЦИЮ (Магия тестирования)
     # Говорим FastAPI: "Для этого теста считай, что запрос делает наш user"
     app.dependency_overrides[get_current_user] = lambda: user
+
+    # Отключаем отправку фоновой задачи Celery.
+    # В этом тесте проверяем PostgreSQL, а не генерацию PDF.
+    monkeypatch.setattr(
+    "app.modules.orders.service.generate_order_pdf.delay",
+    lambda *args, **kwargs: None
+    )
 
     # 3. Отправляем запрос (без user_id, так как мы его убрали в 3-й лабе)
     response = client.post("/orders/create", json={
