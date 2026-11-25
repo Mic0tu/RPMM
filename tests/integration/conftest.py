@@ -1,4 +1,13 @@
 import os
+
+# Эти переменные нужны уже на этапе импорта приложения,
+# до запуска pytest fixtures.
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql://test:test@localhost:5432/test"
+)
+
 import pytest
 from testcontainers.postgres import PostgresContainer
 from sqlalchemy import create_engine
@@ -11,15 +20,16 @@ def postgres():
     with PostgresContainer("postgres:15") as pg:
         # Подменяем URL для приложения
         os.environ["DATABASE_URL"] = pg.get_connection_url()
+
         # Отключаем OTel, чтобы он не спамил при тестах
-        os.environ["OTEL_SDK_DISABLED"] = "true" 
-        
+        os.environ["OTEL_SDK_DISABLED"] = "true"
+
         # Создаем таблицы напрямую из моделей (вместо Alembic)
         engine = create_engine(pg.get_connection_url())
         Base.metadata.create_all(bind=engine)
-        
-        yield pg
 
+        yield pg
+        
 @pytest.fixture
 def db(postgres):
     engine = create_engine(postgres.get_connection_url())
