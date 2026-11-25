@@ -1,6 +1,7 @@
 from app.models import User, MenuItem, Order
 from app.core.dependencies import get_current_user # <--- Импортируем твою защиту
 from app.main import app
+from app.modules.orders import service
 
 def test_create_order_saves_to_db(client, db, monkeypatch):
     """Проверяет, что POST /orders/create сохраняет заказ в БД."""
@@ -18,7 +19,8 @@ def test_create_order_saves_to_db(client, db, monkeypatch):
     # Отключаем отправку фоновой задачи Celery.
     # В этом тесте проверяем PostgreSQL, а не генерацию PDF.
     monkeypatch.setattr(
-    "app.modules.orders.service.generate_order_pdf.delay",
+    service.generate_order_pdf,
+    "delay",
     lambda *args, **kwargs: None
     )
 
