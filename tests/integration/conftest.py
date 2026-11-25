@@ -1,57 +1,67 @@
+
 import os
 
-# Эти переменные нужны уже на этапе импорта приложения,
-# до запуска pytest fixtures.
+# Переменные окружения должны быть установлены ДО импорта приложения.
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault(
     "DATABASE_URL",
     "postgresql://test:test@localhost:5432/test"
 )
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-from testcontainers.postgres import PostgresContainer
+from testcontainers.community.postgres import PostgresContainer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from app.database import Base
+
 
 @pytest.fixture(scope="session")
 def postgres():
-    """Поднимает пустую PostgreSQL в Docker на время тестов."""
+    """Поднимает PostgreSQL в Docker на время тестов."""
+
     with PostgresContainer("postgres:15") as pg:
-        # Подменяем URL для приложения
-        os.environ["DATABASE_URL"] = pg.get_connection_url()
+        database_url = pg.get_connection_url()
 
-        # Отключаем OTel, чтобы он не спамил при тестах
-        os.environ["OTEL_SDK_DISABLED"] = "true"
+        # Передаём приложению URL тестовой PostgreSQL.
+        os.environ["DATABASE_URL"] = database_url
 
-        # Создаем таблицы напрямую из моделей (вместо Alembic)
-        engine = create_engine(pg.get_connection_url())
+        # Создаём таблицы.
+        engine = create_engine(database_url)
         Base.metadata.create_all(bind=engine)
+        engine.dispose()
 
         yield pg
-        
+
+
 @pytest.fixture
 def db(postgres):
+    """Создаёт отдельную сессию БД для теста."""
+
     engine = create_engine(postgres.get_connection_url())
     Session = sessionmaker(bind=engine)
     session = Session()
+
     try:
         yield session
     finally:
         session.rollback()
         session.close()
+        engine.dispose()
+
 
 @pytest.fixture
 def client(db):
+    """Создаёт тестовый HTTP-клиент FastAPI."""
+
     from fastapi.testclient import TestClient
     from app.main import app
     from app.database import get_db
-    
+
     app.dependency_overrides[get_db] = lambda: db
-    
-    # ВАЖНО: мы НЕ используем 'with TestClient(app)', 
-    # чтобы не запускать событие startup (прогрев Redis), которое вешает тест
+
     client = TestClient(app)
     yield client
-    
+
     app.dependency_overrides.clear()
