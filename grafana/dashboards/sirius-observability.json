@@ -1,0 +1,21 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":0},"id":1,"targets":[{"expr":"sum(rate(http_requests_total[1m]))","legendFormat":"requests/sec","refId":"A"}],"title":"API request rate","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"s"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":0},"id":2,"targets":[{"expr":"histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))","legendFormat":"p95","refId":"A"}],"title":"API latency p95","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":8},"id":3,"targets":[{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[1m]))","legendFormat":"5xx/sec","refId":"A"}],"title":"API 5xx errors","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":8},"id":4,"targets":[{"expr":"rabbitmq_queue_messages_ready","legendFormat":"{{queue}}","refId":"A"}],"title":"RabbitMQ ready messages","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"percentunit"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":16},"id":5,"targets":[{"expr":"rate(redis_keyspace_hits_total[5m]) / clamp_min(rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]), 0.000001)","legendFormat":"cache hit rate","refId":"A"}],"title":"Redis cache hit rate","type":"timeseries"},
+    {"datasource":{"type":"prometheus","uid":"prometheus"},"fieldConfig":{"defaults":{"unit":"short"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":16},"id":6,"targets":[{"expr":"up","legendFormat":"{{job}}","refId":"A"}],"title":"Scrape target health","type":"timeseries"}
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["sirius", "observability"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "title": "Sirius Food Observability",
+  "uid": "sirius-observability",
+  "version": 1
+}
