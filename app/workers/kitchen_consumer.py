@@ -22,7 +22,7 @@ async def process_message(message, exchange, dead_exchange) -> None:
     try:
         with tracer.start_as_current_span("kitchen.consume", context=context) as span:
             payload = json.loads(message.body)
-            event_id = str(payload["event_id"])
+            event_id = str(payload["event_id"]) 
             order_id = int(payload["order_id"])
             span.set_attribute("messaging.message.id", event_id)
             span.set_attribute("order.id", order_id)

@@ -30,20 +30,16 @@ async def publish_event(
             EXCHANGE_NAME, ExchangeType.TOPIC, durable=True
         )
         
-        # 1. Достаем родительский контекст (из Outbox воркера или текущий)
         parent = propagate.extract(trace_context or {})
         
-        # 2. Открываем спан для публикации
         with trace.get_tracer(__name__).start_as_current_span(
             "rabbitmq.publish", context=parent
         ) as span:
             span.set_attribute("messaging.destination.name", routing_key)
             
-            # 3. ВАЖНО: Инжектим заголовки ВНУТРИ спана, чтобы trace_id подхватился правильно
             headers: dict[str, str] = {"X-Correlation-ID": str(correlation_id)}
             propagate.inject(headers)
             
-            # 4. Отправляем сообщение
             await exchange.publish(
                 aio_pika.Message(
                     body=json.dumps(payload).encode(),
